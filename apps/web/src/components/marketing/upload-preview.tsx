@@ -118,7 +118,6 @@ export function UploadPreview() {
         ) : (
           <div className="flex flex-col gap-4 rounded-xl border border-border bg-surface p-4 sm:flex-row sm:items-center sm:justify-between">
             <div className="flex items-center gap-3.5">
-              {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
                 src={selectedFile.previewUrl}
                 alt={`Preview of ${selectedFile.name}`}
@@ -161,3 +160,4 @@ export function UploadPreview() {
     </Card>
   );
 }
+

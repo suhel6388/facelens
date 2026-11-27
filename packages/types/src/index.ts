@@ -123,3 +123,17 @@ export interface HealthStatusDto {
   service: string;
   version: string;
 }
+
+export interface SessionDto {
+  id: string;
+  userAgent: string | null;
+  ipAddress: string | null;
+  createdAt: string;
+  expiresAt: string;
+  current: boolean;
+}
+
+export interface AuthMeDto {
+  user: UserDto;
+  workspaces: WorkspaceDto[];
+}

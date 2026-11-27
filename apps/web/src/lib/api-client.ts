@@ -1,9 +1,4 @@
-import type {
-  ApiErrorResponse,
-  ApiSuccessResponse,
-  AuthMeDto,
-  SessionDto,
-} from "@app/types";
+import type { ApiErrorResponse, ApiSuccessResponse, AuthMeDto, SessionDto } from "@app/types";
 import type {
   ForgotPasswordInput,
   LoginInput,
@@ -27,9 +22,7 @@ export class ApiClientError extends Error {
 
 function readCsrfCookie(): string | null {
   if (typeof document === "undefined") return null;
-  const match = document.cookie
-    .split("; ")
-    .find((row) => row.startsWith("facelens_csrf="));
+  const match = document.cookie.split("; ").find((row) => row.startsWith("facelens_csrf="));
   return match ? decodeURIComponent(match.slice("facelens_csrf=".length)) : null;
 }
 

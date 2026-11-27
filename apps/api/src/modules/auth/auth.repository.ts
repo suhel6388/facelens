@@ -228,7 +228,10 @@ export class PrismaAuthRepository implements AuthRepository {
     return prisma.authToken.create({ data: input });
   }
 
-  async findValidAuthToken(tokenHash: string, type: AuthTokenType): Promise<AuthTokenRecord | null> {
+  async findValidAuthToken(
+    tokenHash: string,
+    type: AuthTokenType,
+  ): Promise<AuthTokenRecord | null> {
     return prisma.authToken.findFirst({
       where: {
         tokenHash,

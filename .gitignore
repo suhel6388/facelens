@@ -9,6 +9,7 @@ build/
 out/
 .turbo/
 coverage/
+*.tsbuildinfo
 apps/web/next-env.d.ts
 
 # Environment files

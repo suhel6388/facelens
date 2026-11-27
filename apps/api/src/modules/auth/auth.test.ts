@@ -328,9 +328,7 @@ describe("Authentication, Sessions, CSRF, and RBAC", () => {
     expect(bobCrossTenant.status).toBe(403);
 
     // Regular user cannot access admin overview
-    const userAdminRes = await request(app)
-      .get("/api/v1/admin/overview")
-      .set("Cookie", bobCookies);
+    const userAdminRes = await request(app).get("/api/v1/admin/overview").set("Cookie", bobCookies);
     expect(userAdminRes.status).toBe(403);
 
     // Promoted ADMIN user can access admin overview after fresh login
@@ -340,9 +338,7 @@ describe("Authentication, Sessions, CSRF, and RBAC", () => {
       password: "strong-password-2026!",
     });
     const adminCookies = extractCookies(adminLogin).cookieHeader;
-    const adminRes = await request(app)
-      .get("/api/v1/admin/overview")
-      .set("Cookie", adminCookies);
+    const adminRes = await request(app).get("/api/v1/admin/overview").set("Cookie", adminCookies);
     expect(adminRes.status).toBe(200);
   });
 });

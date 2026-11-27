@@ -25,7 +25,13 @@ function sendSuccess<T>(res: Response, statusCode: number, data: T): void {
 }
 
 function parseOrThrow<T>(
-  schema: { safeParse: (d: unknown) => { success: boolean; data?: T; error?: { issues: { message: string }[] } } },
+  schema: {
+    safeParse: (d: unknown) => {
+      success: boolean;
+      data?: T;
+      error?: { issues: { message: string }[] };
+    };
+  },
   body: unknown,
 ): T {
   const parsed = schema.safeParse(body);

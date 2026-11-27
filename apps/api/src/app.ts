@@ -4,7 +4,12 @@ import express, { type Express } from "express";
 import helmet from "helmet";
 import type { ApiSuccessResponse, HealthStatusDto } from "@app/types";
 import { env } from "./config/env.js";
-import { getAuthContext, requireAuth, requireRole, requireWorkspaceRole } from "./middleware/auth.js";
+import {
+  getAuthContext,
+  requireAuth,
+  requireRole,
+  requireWorkspaceRole,
+} from "./middleware/auth.js";
 import { csrfProtection } from "./middleware/csrf.js";
 import { errorHandler } from "./middleware/error-handler.js";
 import { requestIdMiddleware } from "./middleware/request-id.js";

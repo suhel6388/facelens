@@ -28,7 +28,9 @@ export function AuthCard({ title, description, children, footer }: AuthCardProps
         </CardHeader>
         <CardContent>
           {children}
-          {footer ? <div className="mt-6 border-t border-border pt-4 text-center">{footer}</div> : null}
+          {footer ? (
+            <div className="mt-6 border-t border-border pt-4 text-center">{footer}</div>
+          ) : null}
         </CardContent>
       </Card>
 

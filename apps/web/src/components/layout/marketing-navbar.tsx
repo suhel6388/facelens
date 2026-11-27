@@ -39,10 +39,10 @@ export function MarketingNavbar() {
 
         <div className="hidden items-center gap-3 md:flex">
           <Button variant="ghost" size="sm" asChild>
-            <Link href="/dashboard">Login</Link>
+            <Link href="/login">Login</Link>
           </Button>
           <Button variant="primary" size="sm" asChild>
-            <Link href="/dashboard">Start a comparison</Link>
+            <Link href="/register">Start a comparison</Link>
           </Button>
         </div>
 
@@ -80,10 +80,10 @@ export function MarketingNavbar() {
             ))}
             <div className="mt-2 flex flex-col gap-2 border-t border-border pt-3">
               <Button variant="secondary" asChild>
-                <Link href="/dashboard">Login</Link>
+                <Link href="/login">Login</Link>
               </Button>
               <Button variant="primary" asChild>
-                <Link href="/dashboard">Start a comparison</Link>
+                <Link href="/register">Start a comparison</Link>
               </Button>
             </div>
           </nav>

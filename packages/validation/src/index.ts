@@ -25,6 +25,22 @@ export const loginSchema = z.object({
   password: z.string().min(1, "Password is required."),
 });
 
+export const verifyEmailSchema = z.object({
+  token: z.string().trim().min(16, "Verification token is invalid."),
+});
+
+export const forgotPasswordSchema = z.object({
+  email: z.string().trim().email("Please enter a valid email address."),
+});
+
+export const resetPasswordSchema = z.object({
+  token: z.string().trim().min(16, "Reset token is invalid."),
+  password: z
+    .string()
+    .min(12, "Password must be at least 12 characters.")
+    .max(128, "Password must be at most 128 characters."),
+});
+
 export const createWorkspaceSchema = z.object({
   name: z.string().trim().min(2).max(80),
 });
@@ -74,6 +90,9 @@ export const withdrawConsentSchema = z.object({
 
 export type RegisterInput = z.infer<typeof registerSchema>;
 export type LoginInput = z.infer<typeof loginSchema>;
+export type VerifyEmailInput = z.infer<typeof verifyEmailSchema>;
+export type ForgotPasswordInput = z.infer<typeof forgotPasswordSchema>;
+export type ResetPasswordInput = z.infer<typeof resetPasswordSchema>;
 export type CreateWorkspaceInput = z.infer<typeof createWorkspaceSchema>;
 export type CreateCollectionInput = z.infer<typeof createCollectionSchema>;
 export type EnrollImageInput = z.infer<typeof enrollImageSchema>;

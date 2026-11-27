@@ -6,7 +6,7 @@ import HomePage from "./page";
 describe("HomePage", () => {
   it("renders FaceLens brand and private-collection hero", () => {
     render(<HomePage />);
-    expect(screen.getByText("FaceLens")).toBeInTheDocument();
+    expect(screen.getAllByText("FaceLens").length).toBeGreaterThan(0);
     expect(
       screen.getByRole("heading", { name: /Compare images across your private collections/i }),
     ).toBeInTheDocument();

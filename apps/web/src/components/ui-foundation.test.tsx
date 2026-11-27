@@ -7,6 +7,7 @@ import { MarketingNavbar } from "./layout/marketing-navbar";
 
 vi.mock("next/navigation", () => ({
   usePathname: () => "/dashboard",
+  useRouter: () => ({ push: vi.fn(), replace: vi.fn() }),
 }));
 
 describe("FaceLens UI Foundation", () => {

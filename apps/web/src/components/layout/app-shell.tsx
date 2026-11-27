@@ -1,22 +1,47 @@
 "use client";
 
 import * as React from "react";
-import { ChevronDown, HelpCircle, Menu, User } from "lucide-react";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { ChevronDown, HelpCircle, LogOut, Menu, User } from "lucide-react";
+import { toast } from "sonner";
 import { Button } from "@app/ui";
+import { authApi } from "@/lib/api-client";
 import { AppSidebar } from "./app-sidebar";
 
 export interface AppShellProps {
   title: string;
   workspaceName?: string;
+  userName?: string;
   children: React.ReactNode;
 }
 
 /**
  * Responsive application shell with 248px desktop sidebar, mobile drawer,
- * top bar (page title, workspace selector, help, profile), and 1440px max-width main area.
+ * top bar (page title, workspace selector, help, profile, logout), and 1440px max-width main area.
  */
-export function AppShell({ title, workspaceName = "Default Workspace", children }: AppShellProps) {
+export function AppShell({
+  title,
+  workspaceName = "Default Workspace",
+  userName,
+  children,
+}: AppShellProps) {
+  const router = useRouter();
   const [mobileOpen, setMobileOpen] = React.useState(false);
+  const [signingOut, setSigningOut] = React.useState(false);
+
+  const handleLogout = async () => {
+    setSigningOut(true);
+    try {
+      await authApi.logout();
+      toast.success("Signed out");
+      router.push("/login");
+    } catch {
+      router.push("/login");
+    } finally {
+      setSigningOut(false);
+    }
+  };
 
   return (
     <div className="flex min-h-screen bg-background text-foreground">
@@ -44,11 +69,30 @@ export function AppShell({ title, workspaceName = "Default Workspace", children 
                 <span>{workspaceName}</span>
                 <ChevronDown className="h-3.5 w-3.5 text-muted" aria-hidden="true" />
               </Button>
-              <Button variant="ghost" size="icon" aria-label="Help and documentation">
-                <HelpCircle className="h-4 w-4" aria-hidden="true" />
+              <Button variant="ghost" size="icon" aria-label="Help and documentation" asChild>
+                <Link href="/faq">
+                  <HelpCircle className="h-4 w-4" aria-hidden="true" />
+                </Link>
               </Button>
-              <Button variant="secondary" size="icon" aria-label="Account profile">
-                <User className="h-4 w-4" aria-hidden="true" />
+              <Button
+                variant="secondary"
+                size="icon"
+                aria-label={userName ? `Security settings for ${userName}` : "Account profile"}
+                asChild
+              >
+                <Link href="/settings/security">
+                  <User className="h-4 w-4" aria-hidden="true" />
+                </Link>
+              </Button>
+              <Button
+                variant="ghost"
+                size="sm"
+                loading={signingOut}
+                onClick={handleLogout}
+                aria-label="Sign out"
+              >
+                <LogOut className="h-4 w-4" aria-hidden="true" />
+                <span className="hidden md:inline">Sign out</span>
               </Button>
             </div>
           </div>

@@ -1,0 +1,30 @@
+{
+  "name": "@app/validation",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "scripts": {
+    "build": "tsc",
+    "lint": "eslint src",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "zod": "^3.24.2"
+  },
+  "devDependencies": {
+    "@app/eslint-config": "workspace:*",
+    "@app/typescript-config": "workspace:*",
+    "eslint": "^9.22.0",
+    "typescript": "^5.8.2",
+    "vitest": "^3.0.9"
+  }
+}

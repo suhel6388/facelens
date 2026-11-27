@@ -1,0 +1,269 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum UserRole {
+  USER
+  ADMIN
+}
+
+enum WorkspaceRole {
+  OWNER
+  MEMBER
+  VIEWER
+}
+
+enum CollectionStatus {
+  ACTIVE
+  ARCHIVED
+  DELETED
+}
+
+enum ConsentStatus {
+  GRANTED
+  WITHDRAWN
+  PENDING_DELETION
+  DELETED
+}
+
+enum SearchStatus {
+  QUEUED
+  VALIDATING
+  PROCESSING
+  COMPLETED
+  FAILED
+  CANCELLED
+  DELETED
+}
+
+enum SubscriptionStatus {
+  ACTIVE
+  PAST_DUE
+  CANCELLED
+  TRIALING
+}
+
+enum PaymentStatus {
+  PENDING
+  SUCCEEDED
+  FAILED
+  REFUNDED
+}
+
+model User {
+  id              String            @id @default(uuid()) @db.Uuid
+  email           String            @unique
+  passwordHash    String
+  name            String
+  role            UserRole          @default(USER)
+  emailVerifiedAt DateTime?
+  createdAt       DateTime          @default(now())
+  updatedAt       DateTime          @updatedAt
+
+  sessions        Session[]
+  memberships     WorkspaceMember[]
+  searches        Search[]
+  auditLogs       AuditLog[]
+
+  @@index([email])
+}
+
+model Workspace {
+  id            String            @id @default(uuid()) @db.Uuid
+  name          String
+  slug          String            @unique
+  retentionDays Int               @default(30)
+  createdAt     DateTime          @default(now())
+  updatedAt     DateTime          @updatedAt
+
+  members       WorkspaceMember[]
+  collections   Collection[]
+  searches      Search[]
+  subscriptions Subscription[]
+  payments      Payment[]
+  auditLogs     AuditLog[]
+}
+
+model WorkspaceMember {
+  id          String        @id @default(uuid()) @db.Uuid
+  workspaceId String        @db.Uuid
+  userId      String        @db.Uuid
+  role        WorkspaceRole @default(MEMBER)
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+
+  workspace   Workspace     @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  user        User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([workspaceId, userId])
+  @@index([userId])
+}
+
+model Session {
+  id               String    @id @default(uuid()) @db.Uuid
+  userId           String    @db.Uuid
+  refreshTokenHash String    @unique
+  userAgent        String?
+  ipAddress        String?
+  expiresAt        DateTime
+  revokedAt        DateTime?
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+
+  user             User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([expiresAt])
+}
+
+model Collection {
+  id          String            @id @default(uuid()) @db.Uuid
+  workspaceId String            @db.Uuid
+  name        String
+  description String?
+  purpose     String
+  status      CollectionStatus  @default(ACTIVE)
+  createdAt   DateTime          @default(now())
+  updatedAt   DateTime          @updatedAt
+
+  workspace   Workspace         @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  images      CollectionImage[]
+  searches    Search[]
+
+  @@index([workspaceId, status])
+}
+
+model CollectionImage {
+  id            String          @id @default(uuid()) @db.Uuid
+  workspaceId   String          @db.Uuid
+  collectionId  String          @db.Uuid
+  storageKey    String          @unique
+  mimeType      String
+  sizeBytes     Int
+  width         Int
+  height        Int
+  sha256        String
+  consentStatus ConsentStatus   @default(GRANTED)
+  deletedAt     DateTime?
+  createdAt     DateTime        @default(now())
+  updatedAt     DateTime        @updatedAt
+
+  collection    Collection      @relation(fields: [collectionId], references: [id], onDelete: Cascade)
+  consents      ConsentRecord[]
+  searchResults SearchResult[]
+
+  @@index([workspaceId, collectionId])
+  @@index([consentStatus])
+}
+
+model ConsentRecord {
+  id                 String          @id @default(uuid()) @db.Uuid
+  workspaceId        String          @db.Uuid
+  collectionImageId  String          @db.Uuid
+  authorizationBasis String
+  grantedByUserId    String          @db.Uuid
+  status             ConsentStatus   @default(GRANTED)
+  withdrawnAt        DateTime?
+  withdrawalReason   String?
+  createdAt          DateTime        @default(now())
+  updatedAt          DateTime        @updatedAt
+
+  collectionImage    CollectionImage @relation(fields: [collectionImageId], references: [id], onDelete: Cascade)
+
+  @@index([workspaceId, collectionImageId])
+}
+
+model Search {
+  id                 String         @id @default(uuid()) @db.Uuid
+  workspaceId        String         @db.Uuid
+  userId             String         @db.Uuid
+  collectionId       String         @db.Uuid
+  queryStorageKey    String
+  status             SearchStatus   @default(QUEUED)
+  errorCode          String?
+  resultCount        Int            @default(0)
+  retentionExpiresAt DateTime
+  completedAt        DateTime?
+  deletedAt          DateTime?
+  createdAt          DateTime       @default(now())
+  updatedAt          DateTime       @updatedAt
+
+  workspace          Workspace      @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  user               User           @relation(fields: [userId], references: [id], onDelete: Restrict)
+  collection         Collection     @relation(fields: [collectionId], references: [id], onDelete: Restrict)
+  results            SearchResult[]
+
+  @@index([workspaceId, createdAt])
+  @@index([status])
+}
+
+model SearchResult {
+  id                 String          @id @default(uuid()) @db.Uuid
+  workspaceId        String          @db.Uuid
+  searchId           String          @db.Uuid
+  collectionImageId  String          @db.Uuid
+  similarityEstimate Float
+  rank               Int
+  createdAt          DateTime        @default(now())
+  updatedAt          DateTime        @updatedAt
+
+  search             Search          @relation(fields: [searchId], references: [id], onDelete: Cascade)
+  collectionImage    CollectionImage @relation(fields: [collectionImageId], references: [id], onDelete: Cascade)
+
+  @@index([searchId, rank])
+  @@index([workspaceId])
+}
+
+model Subscription {
+  id                 String             @id @default(uuid()) @db.Uuid
+  workspaceId        String             @db.Uuid
+  planCode           String
+  status             SubscriptionStatus @default(ACTIVE)
+  monthlySearchLimit Int                @default(100)
+  currentPeriodStart DateTime
+  currentPeriodEnd   DateTime
+  createdAt          DateTime           @default(now())
+  updatedAt          DateTime           @updatedAt
+
+  workspace          Workspace          @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+
+  @@index([workspaceId, status])
+}
+
+model Payment {
+  id            String        @id @default(uuid()) @db.Uuid
+  workspaceId   String        @db.Uuid
+  amountCents   Int
+  currency      String        @default("USD")
+  status        PaymentStatus @default(PENDING)
+  externalRef   String?       @unique
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+
+  workspace     Workspace     @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+
+  @@index([workspaceId, createdAt])
+}
+
+model AuditLog {
+  id           String     @id @default(uuid()) @db.Uuid
+  workspaceId  String?    @db.Uuid
+  actorId      String?    @db.Uuid
+  action       String
+  resourceType String
+  resourceId   String?
+  metadataJson Json?
+  createdAt    DateTime   @default(now())
+
+  workspace    Workspace? @relation(fields: [workspaceId], references: [id], onDelete: SetNull)
+  actor        User?      @relation(fields: [actorId], references: [id], onDelete: SetNull)
+
+  @@index([workspaceId, createdAt])
+  @@index([actorId, createdAt])
+}
+

@@ -6,10 +6,10 @@ import { Menu, X } from "lucide-react";
 import { BrandLogo, Button } from "@app/ui";
 
 const MARKETING_LINKS = [
-  { href: "/#product", label: "Product" },
-  { href: "/#how-it-works", label: "How it works" },
-  { href: "/#pricing", label: "Pricing" },
-  { href: "/#privacy", label: "Privacy" },
+  { href: "/features", label: "Product" },
+  { href: "/how-it-works", label: "How it works" },
+  { href: "/pricing", label: "Pricing" },
+  { href: "/privacy", label: "Privacy" },
 ] as const;
 
 export function MarketingNavbar() {

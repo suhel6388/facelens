@@ -8,7 +8,16 @@ import {
   SlidersHorizontal,
   Users,
 } from "lucide-react";
-import { Button, Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle, StatusBadge } from "@app/ui";
+import {
+  Button,
+  Card,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+  StatusBadge,
+} from "@app/ui";
 
 const HOW_IT_WORKS_STEPS = [
   {
@@ -87,7 +96,8 @@ const PRICING_PLANS = [
     name: "Starter",
     price: "$0",
     cadence: "per month",
-    description: "For evaluating authorized private collection workflows with synthetic or demo sets.",
+    description:
+      "For evaluating authorized private collection workflows with synthetic or demo sets.",
     highlighted: false,
     limits: [
       "1 workspace, up to 2 members",
@@ -141,7 +151,8 @@ export function HowItWorksSection() {
           How it works
         </h2>
         <p className="type-body mt-2 text-muted">
-          A transparent, four-step workflow designed around documented authorization and human review.
+          A transparent, four-step workflow designed around documented authorization and human
+          review.
         </p>
       </div>
       <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
@@ -203,8 +214,8 @@ export function TrustPrivacySummary() {
             Clear boundaries on data, retention, and similarity scores
           </CardTitle>
           <CardDescription>
-            FaceLens never searches the public internet, never crawls social media, and never
-            claims that a similarity estimate establishes identity.
+            FaceLens never searches the public internet, never crawls social media, and never claims
+            that a similarity estimate establishes identity.
           </CardDescription>
         </CardHeader>
         <CardContent className="grid gap-4 text-sm text-muted sm:grid-cols-2 lg:grid-cols-3">
@@ -293,4 +304,3 @@ export function PricingCardsSection() {
     </section>
   );
 }
-

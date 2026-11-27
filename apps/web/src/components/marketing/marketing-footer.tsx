@@ -24,8 +24,8 @@ export function MarketingFooter() {
             <BrandLogo />
             <p className="type-support mt-3 max-w-md">
               {BRAND_NAME} provides consent-first visual similarity comparisons exclusively across
-              authorized private image collections. Similarity estimates do not establish
-              identity, and {BRAND_NAME} does not search or index the public internet.
+              authorized private image collections. Similarity estimates do not establish identity,
+              and {BRAND_NAME} does not search or index the public internet.
             </p>
           </div>
 
@@ -63,7 +63,9 @@ export function MarketingFooter() {
         </div>
 
         <div className="mt-10 flex flex-col items-start justify-between gap-4 border-t border-border pt-6 text-xs text-muted sm:flex-row sm:items-center">
-          <p>&copy; {new Date().getFullYear()} {BRAND_NAME}. Authorized private collections only.</p>
+          <p>
+            &copy; {new Date().getFullYear()} {BRAND_NAME}. Authorized private collections only.
+          </p>
           <p>Similarity is an estimate, not identity verification.</p>
         </div>
       </div>

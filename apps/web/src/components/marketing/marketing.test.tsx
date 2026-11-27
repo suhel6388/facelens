@@ -73,4 +73,3 @@ describe("Marketing Components", () => {
     expect(screen.getByText(/Your message has been recorded for review/i)).toBeInTheDocument();
   });
 });
-

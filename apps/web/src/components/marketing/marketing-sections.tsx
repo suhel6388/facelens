@@ -85,7 +85,7 @@ const FEATURES = [
 const PRICING_PLANS = [
   {
     name: "Starter",
-    price: "\$0",
+    price: "$0",
     cadence: "per month",
     description: "For evaluating authorized private collection workflows with synthetic or demo sets.",
     highlighted: false,
@@ -101,7 +101,7 @@ const PRICING_PLANS = [
   },
   {
     name: "Team",
-    price: "\$49",
+    price: "$49",
     cadence: "per month",
     description: "For organizations managing multiple authorized collections and team review.",
     highlighted: true,
@@ -293,3 +293,4 @@ export function PricingCardsSection() {
     </section>
   );
 }
+

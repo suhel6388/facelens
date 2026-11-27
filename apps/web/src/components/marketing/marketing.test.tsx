@@ -1,9 +1,13 @@
 import "@testing-library/jest-dom/vitest";
-import { fireEvent, render, screen } from "@testing-library/react";
-import { describe, expect, it, vi } from "vitest";
+import { cleanup, fireEvent, render, screen } from "@testing-library/react";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { ContactForm } from "./contact-form";
 import { MarketingFooter } from "./marketing-footer";
 import { UploadPreview } from "./upload-preview";
+
+afterEach(() => {
+  cleanup();
+});
 
 describe("Marketing Components", () => {
   it("renders UploadPreview without auto-submit and validates unsupported file types", () => {
@@ -69,3 +73,4 @@ describe("Marketing Components", () => {
     expect(screen.getByText(/Your message has been recorded for review/i)).toBeInTheDocument();
   });
 });
+

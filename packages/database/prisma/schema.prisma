@@ -55,6 +55,11 @@ enum PaymentStatus {
   REFUNDED
 }
 
+enum AuthTokenType {
+  EMAIL_VERIFICATION
+  PASSWORD_RESET
+}
+
 model User {
   id              String            @id @default(uuid()) @db.Uuid
   email           String            @unique
@@ -66,11 +71,27 @@ model User {
   updatedAt       DateTime          @updatedAt
 
   sessions        Session[]
+  authTokens      AuthToken[]
   memberships     WorkspaceMember[]
   searches        Search[]
   auditLogs       AuditLog[]
 
   @@index([email])
+}
+
+model AuthToken {
+  id         String        @id @default(uuid()) @db.Uuid
+  userId     String        @db.Uuid
+  type       AuthTokenType
+  tokenHash  String        @unique
+  expiresAt  DateTime
+  consumedAt DateTime?
+  createdAt  DateTime      @default(now())
+
+  user       User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, type])
+  @@index([expiresAt])
 }
 
 model Workspace {

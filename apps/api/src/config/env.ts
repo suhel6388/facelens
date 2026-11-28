@@ -1,3 +1,22 @@
+import fs from "node:fs";
+import path from "node:path";
+
+const isTest = process.env.NODE_ENV === "test";
+
+// Load .env from apps/api/.env or monorepo root ../../.env when running outside tests
+if (!isTest && !process.env.DATABASE_URL) {
+  const candidates = [
+    path.resolve(process.cwd(), ".env"),
+    path.resolve(process.cwd(), "../../.env"),
+  ];
+  for (const candidate of candidates) {
+    if (fs.existsSync(candidate) && typeof process.loadEnvFile === "function") {
+      process.loadEnvFile(candidate);
+      break;
+    }
+  }
+}
+
 const isProd = process.env.NODE_ENV === "production";
 
 function readSecret(key: string, devFallback: string): string {

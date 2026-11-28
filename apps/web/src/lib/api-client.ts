@@ -6,6 +6,7 @@ import type {
   CollectionDto,
   CollectionImageDto,
   ConsentRecordDto,
+  InvoiceDto,
   PaginationMeta,
   PaymentDto,
   SearchDto,
@@ -34,6 +35,7 @@ import type {
   UpdateSubscriptionInput,
   UpdateWorkspaceInput,
   VerifyEmailInput,
+  VerifyRazorpayPaymentInput,
 } from "@app/validation";
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:4000/api/v1";
@@ -382,9 +384,21 @@ export const billingApi = {
   createCheckout(
     workspaceId: string,
     input: CreatePaymentCheckoutInput,
-  ): Promise<{ payment: PaymentDto; checkoutUrl: string }> {
-    return apiFetch<{ payment: PaymentDto; checkoutUrl: string }>(
+  ): Promise<{ payment: PaymentDto; checkoutUrl: string; orderId: string }> {
+    return apiFetch<{ payment: PaymentDto; checkoutUrl: string; orderId: string }>(
       `/workspaces/${workspaceId}/billing/checkout`,
+      {
+        method: "POST",
+        body: JSON.stringify(input),
+      },
+    );
+  },
+  verifyPayment(
+    workspaceId: string,
+    input: VerifyRazorpayPaymentInput,
+  ): Promise<{ verified: boolean; subscription: SubscriptionDto }> {
+    return apiFetch<{ verified: boolean; subscription: SubscriptionDto }>(
+      `/workspaces/${workspaceId}/billing/verify`,
       {
         method: "POST",
         body: JSON.stringify(input),
@@ -393,5 +407,8 @@ export const billingApi = {
   },
   listPayments(workspaceId: string): Promise<PaymentDto[]> {
     return apiFetch<PaymentDto[]>(`/workspaces/${workspaceId}/billing/payments`);
+  },
+  listInvoices(workspaceId: string): Promise<InvoiceDto[]> {
+    return apiFetch<InvoiceDto[]>(`/workspaces/${workspaceId}/billing/invoices`);
   },
 };

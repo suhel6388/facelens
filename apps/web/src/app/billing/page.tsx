@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import { toast } from "sonner";
-import type { BillingOverviewDto } from "@app/types";
+import type { BillingOverviewDto, InvoiceDto } from "@app/types";
 import {
   Button,
   Card,
@@ -18,14 +18,14 @@ import { ApiClientError, billingApi } from "@/lib/api-client";
 
 const PLANS = [
   { code: "FREE", name: "Free", price: "$0/mo", limit: "25 searches / month" },
-  { code: "STARTER", name: "Starter", price: "$29/mo", limit: "250 searches / month" },
   { code: "PRO", name: "Pro", price: "$99/mo", limit: "2,000 searches / month" },
-  { code: "ENTERPRISE", name: "Enterprise", price: "$499/mo", limit: "25,000 searches / month" },
+  { code: "BUSINESS", name: "Business", price: "$299/mo", limit: "15,000 searches / month" },
 ] as const;
 
 export default function BillingPage() {
   const { me, workspace } = useWorkspaceSession();
   const [overview, setOverview] = React.useState<BillingOverviewDto | null>(null);
+  const [invoices, setInvoices] = React.useState<InvoiceDto[]>([]);
   const [loading, setLoading] = React.useState(false);
   const [updatingPlan, setUpdatingPlan] = React.useState<string | null>(null);
 
@@ -33,8 +33,12 @@ export default function BillingPage() {
     if (!workspace?.id) return;
     setLoading(true);
     try {
-      const data = await billingApi.getOverview(workspace.id);
+      const [data, invs] = await Promise.all([
+        billingApi.getOverview(workspace.id),
+        billingApi.listInvoices(workspace.id),
+      ]);
       setOverview(data);
+      setInvoices(invs);
     } catch {
       toast.error("Unable to load billing information");
     } finally {
@@ -46,7 +50,7 @@ export default function BillingPage() {
     void loadBilling();
   }, [loadBilling]);
 
-  const handleSelectPlan = async (planCode: "FREE" | "STARTER" | "PRO" | "ENTERPRISE") => {
+  const handleSelectPlan = async (planCode: "FREE" | "PRO" | "BUSINESS") => {
     if (!workspace?.id) return;
     setUpdatingPlan(planCode);
     try {
@@ -99,7 +103,7 @@ export default function BillingPage() {
           <Card>
             <CardHeader>
               <CardTitle>Monthly Quota</CardTitle>
-              <CardDescription>Similarity searches used this billing period</CardDescription>
+              <CardDescription>Backend-enforced similarity searches this period</CardDescription>
             </CardHeader>
             <CardContent className="flex flex-col gap-2">
               <p className="text-2xl font-semibold text-white">
@@ -119,12 +123,13 @@ export default function BillingPage() {
 
         <Card>
           <CardHeader>
-            <CardTitle>Available Plans</CardTitle>
+            <CardTitle>Subscription Plans</CardTitle>
             <CardDescription>
-              Upgrade or adjust your workspace search quota at any time.
+              Choose Free, Pro, or Business tier for your workspace. Checkout integrates with
+              Razorpay payment verification.
             </CardDescription>
           </CardHeader>
-          <CardContent className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+          <CardContent className="grid gap-4 sm:grid-cols-3">
             {PLANS.map((plan) => {
               const isCurrent = currentPlan === plan.code;
               return (
@@ -157,40 +162,40 @@ export default function BillingPage() {
 
         <Card>
           <CardHeader>
-            <CardTitle>Recent Payments</CardTitle>
-            <CardDescription>Billing transactions for this workspace</CardDescription>
+            <CardTitle>Invoice History</CardTitle>
+            <CardDescription>Issued invoices and Razorpay payment records</CardDescription>
           </CardHeader>
           <CardContent>
-            {!overview?.recentPayments.length ? (
-              <p className="text-sm text-muted">No payment transactions recorded yet.</p>
+            {invoices.length === 0 ? (
+              <p className="text-sm text-muted">No invoices issued yet.</p>
             ) : (
               <div className="overflow-x-auto">
                 <table className="w-full text-left text-sm">
                   <thead>
                     <tr className="border-b border-border text-xs uppercase text-muted">
-                      <th className="py-2 pr-4 font-medium">Reference</th>
+                      <th className="py-2 pr-4 font-medium">Invoice #</th>
                       <th className="py-2 pr-4 font-medium">Amount</th>
                       <th className="py-2 pr-4 font-medium">Status</th>
-                      <th className="py-2 font-medium">Date</th>
+                      <th className="py-2 font-medium">Issued</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-border/60">
-                    {overview.recentPayments.map((p) => (
-                      <tr key={p.id}>
+                    {invoices.map((inv) => (
+                      <tr key={inv.id}>
                         <td className="py-2.5 pr-4 font-mono text-xs text-white">
-                          {p.externalRef ?? p.id.slice(0, 12)}
+                          {inv.invoiceNumber}
                         </td>
                         <td className="py-2.5 pr-4 text-white">
-                          ${(p.amountCents / 100).toFixed(2)} {p.currency}
+                          ${(inv.amountCents / 100).toFixed(2)} {inv.currency}
                         </td>
                         <td className="py-2.5 pr-4">
                           <StatusBadge
-                            status={p.status === "SUCCEEDED" ? "completed" : "queued"}
-                            label={p.status}
+                            status={inv.status === "SUCCEEDED" ? "completed" : "queued"}
+                            label={inv.status}
                           />
                         </td>
                         <td className="py-2.5 text-muted">
-                          {new Date(p.createdAt).toLocaleDateString()}
+                          {new Date(inv.issuedAt).toLocaleDateString()}
                         </td>
                       </tr>
                     ))}

@@ -1,6 +1,7 @@
 import { prisma } from "@app/database";
 import type {
   BillingOverviewDto,
+  InvoiceDto,
   PaymentDto,
   PaymentStatus,
   SubscriptionDto,
@@ -21,7 +22,9 @@ export interface BillingRepository {
     currency: string;
     externalRef: string;
   }): Promise<PaymentDto>;
+  markPaymentSucceeded(externalRef: string): Promise<PaymentDto | null>;
   listPayments(workspaceId: string): Promise<PaymentDto[]>;
+  listInvoices(workspaceId: string): Promise<InvoiceDto[]>;
 }
 
 function toSubscriptionDto(row: {
@@ -152,6 +155,16 @@ export class PrismaBillingRepository implements BillingRepository {
     return toPaymentDto(row);
   }
 
+  async markPaymentSucceeded(externalRef: string): Promise<PaymentDto | null> {
+    const existing = await prisma.payment.findUnique({ where: { externalRef } });
+    if (!existing) return null;
+    const updated = await prisma.payment.update({
+      where: { id: existing.id },
+      data: { status: "SUCCEEDED" },
+    });
+    return toPaymentDto(updated);
+  }
+
   async listPayments(workspaceId: string): Promise<PaymentDto[]> {
     const rows = await prisma.payment.findMany({
       where: { workspaceId },
@@ -159,5 +172,19 @@ export class PrismaBillingRepository implements BillingRepository {
       take: 50,
     });
     return rows.map(toPaymentDto);
+  }
+
+  async listInvoices(workspaceId: string): Promise<InvoiceDto[]> {
+    const payments = await this.listPayments(workspaceId);
+    return payments.map((p, idx) => ({
+      id: p.id,
+      workspaceId: p.workspaceId,
+      invoiceNumber: `INV-${p.createdAt.slice(0, 10).replace(/-/g, "")}-${String(idx + 1).padStart(3, "0")}`,
+      amountCents: p.amountCents,
+      currency: p.currency,
+      status: p.status,
+      externalRef: p.externalRef,
+      issuedAt: p.createdAt,
+    }));
   }
 }

@@ -7,6 +7,11 @@ export const SIMILARITY_DISCLAIMER =
 export interface SearchWithResultsDto {
   search: SearchDto;
   results: SearchResultDto[];
+  collection?: {
+    id: string;
+    name: string;
+    purpose: string;
+  };
 }
 
 export interface SearchesRepository {
@@ -17,7 +22,12 @@ export interface SearchesRepository {
   getWorkspaceRetentionAndCollection(
     workspaceId: string,
     collectionId: string,
-  ): Promise<{ retentionDays: number; collectionActive: boolean } | null>;
+  ): Promise<{
+    retentionDays: number;
+    collectionActive: boolean;
+    consentedImageCount: number;
+  } | null>;
+  getMonthlyUsageAndLimit(workspaceId: string): Promise<{ used: number; limit: number }>;
   createSearch(params: {
     workspaceId: string;
     userId: string;
@@ -26,6 +36,12 @@ export interface SearchesRepository {
     retentionExpiresAt: Date;
   }): Promise<SearchDto>;
   findByIdWithResults(workspaceId: string, searchId: string): Promise<SearchWithResultsDto | null>;
+  updateStatus(searchId: string, status: SearchStatus, errorCode?: string): Promise<void>;
+  saveResults(
+    searchId: string,
+    workspaceId: string,
+    results: { collectionImageId: string; similarityEstimate: number; rank: number }[],
+  ): Promise<void>;
   cancelSearch(workspaceId: string, searchId: string): Promise<SearchDto | null>;
   softDeleteSearch(workspaceId: string, searchId: string, actorId: string): Promise<boolean>;
 }
@@ -73,7 +89,11 @@ export class PrismaSearchesRepository implements SearchesRepository {
   async getWorkspaceRetentionAndCollection(
     workspaceId: string,
     collectionId: string,
-  ): Promise<{ retentionDays: number; collectionActive: boolean } | null> {
+  ): Promise<{
+    retentionDays: number;
+    collectionActive: boolean;
+    consentedImageCount: number;
+  } | null> {
     const ws = await prisma.workspace.findUnique({
       where: { id: workspaceId },
       select: { retentionDays: true },
@@ -83,7 +103,40 @@ export class PrismaSearchesRepository implements SearchesRepository {
       where: { id: collectionId, workspaceId, status: "ACTIVE" },
       select: { id: true },
     });
-    return { retentionDays: ws.retentionDays, collectionActive: Boolean(col) };
+    const consentedImageCount = col
+      ? await prisma.collectionImage.count({
+          where: {
+            workspaceId,
+            collectionId,
+            consentStatus: "GRANTED",
+            deletedAt: null,
+          },
+        })
+      : 0;
+    return {
+      retentionDays: ws.retentionDays,
+      collectionActive: Boolean(col),
+      consentedImageCount,
+    };
+  }
+
+  async getMonthlyUsageAndLimit(workspaceId: string): Promise<{ used: number; limit: number }> {
+    const startOfMonth = new Date();
+    startOfMonth.setUTCDate(1);
+    startOfMonth.setUTCHours(0, 0, 0, 0);
+
+    const [used, sub] = await Promise.all([
+      prisma.search.count({
+        where: { workspaceId, createdAt: { gte: startOfMonth }, deletedAt: null },
+      }),
+      prisma.subscription.findFirst({
+        where: { workspaceId, status: { in: ["ACTIVE", "TRIALING"] } },
+        orderBy: { createdAt: "desc" },
+        select: { monthlySearchLimit: true },
+      }),
+    ]);
+
+    return { used, limit: sub?.monthlySearchLimit ?? 25 };
   }
 
   async createSearch(params: {
@@ -126,6 +179,7 @@ export class PrismaSearchesRepository implements SearchesRepository {
     const row = await prisma.search.findFirst({
       where: { id: searchId, workspaceId, deletedAt: null },
       include: {
+        collection: { select: { id: true, name: true, purpose: true } },
         results: {
           orderBy: { rank: "asc" },
         },
@@ -134,6 +188,7 @@ export class PrismaSearchesRepository implements SearchesRepository {
     if (!row) return null;
     return {
       search: toSearchDto(row),
+      collection: row.collection,
       results: row.results.map((r) => ({
         id: r.id,
         searchId: r.searchId,
@@ -141,8 +196,48 @@ export class PrismaSearchesRepository implements SearchesRepository {
         similarityEstimate: r.similarityEstimate,
         rank: r.rank,
         disclaimer: SIMILARITY_DISCLAIMER,
+        previewUrl: `/api/v1/workspaces/${workspaceId}/uploads/images/${r.collectionImageId}/content`,
       })),
     };
+  }
+
+  async updateStatus(searchId: string, status: SearchStatus, errorCode?: string): Promise<void> {
+    await prisma.search.update({
+      where: { id: searchId },
+      data: {
+        status,
+        ...(errorCode !== undefined ? { errorCode } : {}),
+        ...(status === "COMPLETED" ? { completedAt: new Date() } : {}),
+      },
+    });
+  }
+
+  async saveResults(
+    searchId: string,
+    workspaceId: string,
+    results: { collectionImageId: string; similarityEstimate: number; rank: number }[],
+  ): Promise<void> {
+    await prisma.$transaction(async (tx) => {
+      if (results.length > 0) {
+        await tx.searchResult.createMany({
+          data: results.map((r) => ({
+            workspaceId,
+            searchId,
+            collectionImageId: r.collectionImageId,
+            similarityEstimate: r.similarityEstimate,
+            rank: r.rank,
+          })),
+        });
+      }
+      await tx.search.update({
+        where: { id: searchId },
+        data: {
+          status: "COMPLETED",
+          resultCount: results.length,
+          completedAt: new Date(),
+        },
+      });
+    });
   }
 
   async cancelSearch(workspaceId: string, searchId: string): Promise<SearchDto | null> {

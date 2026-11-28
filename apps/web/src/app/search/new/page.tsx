@@ -228,9 +228,14 @@ export default function NewSearchPage() {
               <p className="text-sm text-muted">
                 Retention expires {new Date(createdSearch.retentionExpiresAt).toLocaleDateString()}.
               </p>
-              <Button variant="secondary" size="sm" asChild>
-                <Link href="/history">View in Search History</Link>
-              </Button>
+              <div className="flex gap-2">
+                <Button size="sm" asChild>
+                  <Link href={`/searches/${createdSearch.id}`}>Track live results</Link>
+                </Button>
+                <Button variant="secondary" size="sm" asChild>
+                  <Link href="/history">Search History</Link>
+                </Button>
+              </div>
             </CardContent>
           </Card>
         ) : null}

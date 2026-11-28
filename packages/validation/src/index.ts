@@ -142,12 +142,19 @@ export const createUploadTicketSchema = enrollImageSchema.extend({
 });
 
 export const updateSubscriptionSchema = z.object({
-  planCode: z.enum(["FREE", "STARTER", "PRO", "ENTERPRISE"]),
+  planCode: z.enum(["FREE", "STARTER", "PRO", "BUSINESS", "ENTERPRISE"]),
 });
 
 export const createPaymentCheckoutSchema = z.object({
-  planCode: z.enum(["STARTER", "PRO", "ENTERPRISE"]),
+  planCode: z.enum(["STARTER", "PRO", "BUSINESS", "ENTERPRISE"]),
   currency: z.string().trim().length(3).default("USD"),
+});
+
+export const verifyRazorpayPaymentSchema = z.object({
+  razorpay_order_id: z.string().trim().min(4),
+  razorpay_payment_id: z.string().trim().min(4),
+  razorpay_signature: z.string().trim().min(16),
+  planCode: z.enum(["STARTER", "PRO", "BUSINESS", "ENTERPRISE"]),
 });
 
 export const adminAuditLogsQuerySchema = paginationSchema.extend({
@@ -173,4 +180,5 @@ export type WithdrawConsentInput = z.infer<typeof withdrawConsentSchema>;
 export type UpdateProfileInput = z.infer<typeof updateProfileSchema>;
 export type UpdateSubscriptionInput = z.infer<typeof updateSubscriptionSchema>;
 export type CreatePaymentCheckoutInput = z.infer<typeof createPaymentCheckoutSchema>;
+export type VerifyRazorpayPaymentInput = z.infer<typeof verifyRazorpayPaymentSchema>;
 export type AdminAuditLogsQuery = z.infer<typeof adminAuditLogsQuerySchema>;

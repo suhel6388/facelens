@@ -65,7 +65,10 @@ import {
 import { createWorkspacesRouter } from "./modules/workspaces/workspaces.routes.js";
 import { WorkspacesService } from "./modules/workspaces/workspaces.service.js";
 import { openApiSpec } from "./openapi.js";
+import { HttpAiServiceClient, type AiServiceClient } from "./lib/ai-client.js";
+import { BullMqSearchQueue, InMemorySearchQueue, type SearchQueueAdapter } from "./lib/queue.js";
 import { LocalPrivateStorageAdapter, type PrivateStorageAdapter } from "./lib/storage.js";
+import { SearchesWorker } from "./modules/searches/searches.worker.js";
 
 export interface CreateAppOptions {
   authRepository?: AuthRepository;
@@ -77,6 +80,8 @@ export interface CreateAppOptions {
   uploadsRepository?: UploadsRepository;
   storageAdapter?: PrivateStorageAdapter;
   searchesRepository?: SearchesRepository;
+  searchQueue?: SearchQueueAdapter;
+  aiClient?: AiServiceClient;
   billingRepository?: BillingRepository;
   adminRepository?: AdminRepository;
 }
@@ -192,21 +197,31 @@ export function createApp(options: CreateAppOptions = {}): Express {
     createUploadsRouter(uploadsController, resolveWorkspaceRole),
   );
 
-  // 7. Searches
+  // 7. Searches & Background Worker
   const searchesRepo = options.searchesRepository ?? new PrismaSearchesRepository();
-  const searchesController = new SearchesController(new SearchesService(searchesRepo));
+  const searchQueue =
+    options.searchQueue ??
+    (env.redisUrl && env.nodeEnv !== "test"
+      ? new BullMqSearchQueue(env.redisUrl)
+      : new InMemorySearchQueue());
+  const aiClient = options.aiClient ?? new HttpAiServiceClient();
+  const searchesWorker = new SearchesWorker(searchesRepo, aiClient, storageAdapter);
+  searchQueue.registerProcessor((payload) => searchesWorker.process(payload));
+
+  const searchesController = new SearchesController(new SearchesService(searchesRepo, searchQueue));
   app.use(
     "/api/v1/workspaces/:workspaceId/searches",
     createSearchesRouter(searchesController, resolveWorkspaceRole),
   );
 
-  // 8. Billing
+  // 8. Billing & Razorpay Webhooks
   const billingRepo = options.billingRepository ?? new PrismaBillingRepository();
   const billingController = new BillingController(new BillingService(billingRepo));
   app.use(
     "/api/v1/workspaces/:workspaceId/billing",
     createBillingRouter(billingController, resolveWorkspaceRole),
   );
+  app.post("/api/v1/billing/webhooks/razorpay", billingController.handleWebhook);
 
   // 9. Admin
   const adminRepo = options.adminRepository ?? new PrismaAdminRepository();

@@ -601,12 +601,41 @@ function createInMemoryPlatform() {
       const ws = workspaces.get(workspaceId);
       if (!ws) return null;
       const col = collections.get(collectionId);
+      const consentedImageCount = Array.from(images.values()).filter(
+        (i) =>
+          i.workspaceId === workspaceId &&
+          i.collectionId === collectionId &&
+          !i.deleted &&
+          i.consentStatus === "GRANTED",
+      ).length;
       return {
         retentionDays: ws.retentionDays,
         collectionActive: Boolean(
           col && col.workspaceId === workspaceId && col.status === "ACTIVE",
         ),
+        consentedImageCount,
       };
+    },
+    async getMonthlyUsageAndLimit(workspaceId) {
+      const used = Array.from(searches.values()).filter(
+        (s) => s.workspaceId === workspaceId && !s.deleted,
+      ).length;
+      const sub = Array.from(subscriptions.values()).find(
+        (s) => s.workspaceId === workspaceId && s.status === "ACTIVE",
+      );
+      return { used, limit: sub?.monthlySearchLimit ?? 25 };
+    },
+    async updateStatus(searchId, status) {
+      const s = searches.get(searchId);
+      if (s) s.status = status;
+    },
+    async saveResults(searchId, _workspaceId, results) {
+      const s = searches.get(searchId);
+      if (s) {
+        s.status = "COMPLETED";
+        s.resultCount = results.length;
+        s.completedAt = new Date().toISOString();
+      }
     },
     async createSearch(params) {
       const now = new Date().toISOString();
@@ -694,8 +723,31 @@ function createInMemoryPlatform() {
       payments.set(p.id, p);
       return p;
     },
+    async markPaymentSucceeded(externalRef) {
+      for (const p of payments.values()) {
+        if (p.externalRef === externalRef) {
+          p.status = "SUCCEEDED";
+          return p;
+        }
+      }
+      return null;
+    },
     async listPayments(workspaceId) {
       return Array.from(payments.values()).filter((p) => p.workspaceId === workspaceId);
+    },
+    async listInvoices(workspaceId) {
+      return Array.from(payments.values())
+        .filter((p) => p.workspaceId === workspaceId)
+        .map((p, idx) => ({
+          id: p.id,
+          workspaceId: p.workspaceId,
+          invoiceNumber: `INV-TEST-${idx + 1}`,
+          amountCents: p.amountCents,
+          currency: p.currency,
+          status: p.status,
+          externalRef: p.externalRef,
+          issuedAt: p.createdAt,
+        }));
     },
   };
 
@@ -907,6 +959,33 @@ describe("Phase 5 Core API Modules & OpenAPI", () => {
       .send({ reason: "Subject requested removal from directory." });
     expect(consentRes.status).toBe(200);
     expect(consentRes.body.data.status).toBe("WITHDRAWN");
+
+    // Searches: rejected when collection has no consented images
+    const noConsentSearch = await request(app)
+      .post(`/api/v1/workspaces/${workspaceId}/searches`)
+      .set("Cookie", cookieHeader(cookies))
+      .set("x-csrf-token", csrf)
+      .send({ collectionId, purposeConfirmed: true });
+    expect(noConsentSearch.status).toBe(400);
+    expect(noConsentSearch.body.error.code).toBe("NO_CONSENTED_IMAGES");
+
+    // Enroll a fresh consented image so searches can proceed
+    const ticket2 = await request(app)
+      .post(`/api/v1/workspaces/${workspaceId}/uploads/ticket`)
+      .set("Cookie", cookieHeader(cookies))
+      .set("x-csrf-token", csrf)
+      .send({
+        collectionId,
+        mimeType: "image/jpeg",
+        sizeBytes: 204800,
+        width: 800,
+        height: 800,
+        sha256: "b".repeat(64),
+        authorizationBasis: "Signed employee badge consent form #2026-02",
+        consentConfirmed: true,
+        subjectAdultConfirmed: true,
+      });
+    expect(ticket2.status).toBe(201);
 
     // Searches: create + get with disclaimer + cancel
     const searchRes = await request(app)

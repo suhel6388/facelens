@@ -133,12 +133,15 @@ export default function SearchHistoryPage() {
                           {new Date(s.retentionExpiresAt).toLocaleDateString()}
                         </td>
                         <td className="flex justify-end gap-2 py-3">
+                          <Button variant="primary" size="sm" asChild>
+                            <Link href={`/searches/${s.id}`}>Results</Link>
+                          </Button>
                           <Button
                             variant="secondary"
                             size="sm"
                             onClick={() => void handleInspect(s.id)}
                           >
-                            Details
+                            Quick view
                           </Button>
                           {s.status === "QUEUED" || s.status === "PROCESSING" ? (
                             <Button

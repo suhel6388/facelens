@@ -1,5 +1,9 @@
 import type { NextFunction, Request, Response } from "express";
-import type { CreatePaymentCheckoutInput, UpdateSubscriptionInput } from "@app/validation";
+import type {
+  CreatePaymentCheckoutInput,
+  UpdateSubscriptionInput,
+  VerifyRazorpayPaymentInput,
+} from "@app/validation";
 import { sendSuccess } from "../../lib/http.js";
 import { getAuthContext } from "../../middleware/auth.js";
 import type { BillingService } from "./billing.service.js";
@@ -42,10 +46,52 @@ export class BillingController {
     }
   };
 
+  verifyPayment = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const auth = getAuthContext(res);
+      const result = await this.service.verifyRazorpayPayment(
+        req.params.workspaceId!,
+        auth.userId,
+        req.body as VerifyRazorpayPaymentInput,
+      );
+      sendSuccess(res, 200, result);
+    } catch (err) {
+      next(err);
+    }
+  };
+
+  handleWebhook = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const signature = req.header("x-razorpay-signature") ?? "";
+      const body = (req.body ?? {}) as {
+        event?: string;
+        payload?: { payment?: { entity?: { order_id?: string } } };
+      };
+      const result = await this.service.handleRazorpayWebhook({
+        rawPayload: JSON.stringify(body),
+        signature,
+        event: body.event ?? "",
+        orderId: body.payload?.payment?.entity?.order_id,
+      });
+      sendSuccess(res, 200, result);
+    } catch (err) {
+      next(err);
+    }
+  };
+
   listPayments = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
       const payments = await this.service.listPayments(req.params.workspaceId!);
       sendSuccess(res, 200, payments);
+    } catch (err) {
+      next(err);
+    }
+  };
+
+  listInvoices = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const invoices = await this.service.listInvoices(req.params.workspaceId!);
+      sendSuccess(res, 200, invoices);
     } catch (err) {
       next(err);
     }

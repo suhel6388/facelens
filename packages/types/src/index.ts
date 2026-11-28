@@ -219,3 +219,14 @@ export interface AdminOverviewDto {
   totalCollections: number;
   totalSearches: number;
 }
+
+export interface InvoiceDto {
+  id: string;
+  workspaceId: string;
+  invoiceNumber: string;
+  amountCents: number;
+  currency: string;
+  status: PaymentStatus;
+  externalRef: string | null;
+  issuedAt: string;
+}

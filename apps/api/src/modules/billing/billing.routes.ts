@@ -1,6 +1,10 @@
 import { Router } from "express";
 import { z } from "zod";
-import { createPaymentCheckoutSchema, updateSubscriptionSchema } from "@app/validation";
+import {
+  createPaymentCheckoutSchema,
+  updateSubscriptionSchema,
+  verifyRazorpayPaymentSchema,
+} from "@app/validation";
 import {
   requireAuth,
   requireWorkspaceRole,
@@ -37,11 +41,23 @@ export function createBillingRouter(
     requireWorkspaceRole(["OWNER"], resolveMembership),
     controller.createCheckout,
   );
+  router.post(
+    "/verify",
+    validate({ params: workspaceParams, body: verifyRazorpayPaymentSchema }),
+    requireWorkspaceRole(["OWNER"], resolveMembership),
+    controller.verifyPayment,
+  );
   router.get(
     "/payments",
     validate({ params: workspaceParams }),
     requireWorkspaceRole(["OWNER"], resolveMembership),
     controller.listPayments,
+  );
+  router.get(
+    "/invoices",
+    validate({ params: workspaceParams }),
+    requireWorkspaceRole(["OWNER", "MEMBER", "VIEWER"], resolveMembership),
+    controller.listInvoices,
   );
 
   return router;

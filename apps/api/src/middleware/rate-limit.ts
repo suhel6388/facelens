@@ -17,3 +17,20 @@ export const authRateLimiter = rateLimit({
     meta: { requestId: "rate-limited" },
   },
 });
+
+/**
+ * General API rate limiter across all /api/v1 endpoints.
+ */
+export const apiRateLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  limit: env.nodeEnv === "test" ? 2000 : 120,
+  standardHeaders: "draft-7",
+  legacyHeaders: false,
+  message: {
+    error: {
+      code: "RATE_LIMIT_EXCEEDED",
+      message: "Too many requests. Please slow down and try again.",
+    },
+    meta: { requestId: "rate-limited" },
+  },
+});

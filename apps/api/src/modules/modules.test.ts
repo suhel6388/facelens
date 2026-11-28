@@ -806,6 +806,24 @@ function createInMemoryPlatform() {
         total: filtered.length,
       };
     },
+    async listSubscriptions() {
+      return { items: [], total: 0 };
+    },
+    async listPayments() {
+      return { items: [], total: 0 };
+    },
+    async getAnalytics() {
+      return { searchesByStatus: {}, consentsByStatus: {}, totalEnrolledImages: images.size };
+    },
+    async listDeletionRequests() {
+      return { items: [], total: 0 };
+    },
+    async purgeDeletionRequest() {
+      return null;
+    },
+    async checkDatabaseHealth() {
+      return true;
+    },
   };
 
   return {

@@ -9,7 +9,9 @@
     "typecheck": "turbo typecheck",
     "test": "turbo test",
     "format": "prettier --write .",
-    "format:check": "prettier --check ."
+    "format:check": "prettier --check .",
+    "security:audit": "pnpm audit --audit-level=high",
+    "test:e2e": "pnpm --filter @app/web exec playwright test"
   },
   "devDependencies": {
     "prettier": "^3.5.3",

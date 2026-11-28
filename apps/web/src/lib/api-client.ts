@@ -1,6 +1,8 @@
 import type {
+  AdminOverviewDto,
   ApiErrorResponse,
   ApiSuccessResponse,
+  AuditLogDto,
   AuthMeDto,
   BillingOverviewDto,
   CollectionDto,
@@ -410,5 +412,99 @@ export const billingApi = {
   },
   listInvoices(workspaceId: string): Promise<InvoiceDto[]> {
     return apiFetch<InvoiceDto[]>(`/workspaces/${workspaceId}/billing/invoices`);
+  },
+};
+
+export interface AdminWorkspaceSummaryDto {
+  id: string;
+  name: string;
+  slug: string;
+  retentionDays: number;
+  memberCount: number;
+  collectionCount: number;
+  createdAt: string;
+}
+
+export interface AdminSubscriptionSummaryDto {
+  id: string;
+  workspaceId: string;
+  workspaceName: string;
+  planCode: string;
+  status: string;
+  monthlySearchLimit: number;
+  currentPeriodEnd: string;
+}
+
+export interface AdminPaymentSummaryDto {
+  id: string;
+  workspaceId: string;
+  workspaceName: string;
+  amountCents: number;
+  currency: string;
+  status: string;
+  externalRef: string | null;
+  createdAt: string;
+}
+
+export interface AdminAnalyticsDto {
+  searchesByStatus: Record<string, number>;
+  consentsByStatus: Record<string, number>;
+  totalEnrolledImages: number;
+}
+
+export interface AdminDeletionRequestDto {
+  imageId: string;
+  workspaceId: string;
+  collectionId: string;
+  consentStatus: string;
+  storageKey: string;
+  updatedAt: string;
+}
+
+export interface AdminSystemHealthDto {
+  apiStatus: "ok";
+  uptimeSeconds: number;
+  memoryRssMb: number;
+  databaseStatus: "ok" | "unreachable";
+  aiServiceStatus: "ok" | "unreachable";
+  timestamp: string;
+}
+
+export const adminApi = {
+  getOverview(): Promise<AdminOverviewDto> {
+    return apiFetch<AdminOverviewDto>("/admin/overview");
+  },
+  listUsers(page = 1, limit = 20): Promise<UserDto[]> {
+    return apiFetch<UserDto[]>(`/admin/users?page=${page}&limit=${limit}`);
+  },
+  listWorkspaces(page = 1, limit = 20): Promise<AdminWorkspaceSummaryDto[]> {
+    return apiFetch<AdminWorkspaceSummaryDto[]>(`/admin/workspaces?page=${page}&limit=${limit}`);
+  },
+  listSubscriptions(page = 1, limit = 20): Promise<AdminSubscriptionSummaryDto[]> {
+    return apiFetch<AdminSubscriptionSummaryDto[]>(
+      `/admin/subscriptions?page=${page}&limit=${limit}`,
+    );
+  },
+  listPayments(page = 1, limit = 20): Promise<AdminPaymentSummaryDto[]> {
+    return apiFetch<AdminPaymentSummaryDto[]>(`/admin/payments?page=${page}&limit=${limit}`);
+  },
+  getAnalytics(): Promise<AdminAnalyticsDto> {
+    return apiFetch<AdminAnalyticsDto>("/admin/analytics");
+  },
+  listAuditLogs(page = 1, limit = 30): Promise<AuditLogDto[]> {
+    return apiFetch<AuditLogDto[]>(`/admin/audit-logs?page=${page}&limit=${limit}`);
+  },
+  listDeletionRequests(page = 1, limit = 20): Promise<AdminDeletionRequestDto[]> {
+    return apiFetch<AdminDeletionRequestDto[]>(
+      `/admin/deletion-requests?page=${page}&limit=${limit}`,
+    );
+  },
+  purgeDeletionRequest(imageId: string): Promise<{ purged: boolean }> {
+    return apiFetch<{ purged: boolean }>(`/admin/deletion-requests/${imageId}/purge`, {
+      method: "POST",
+    });
+  },
+  getSystemHealth(): Promise<AdminSystemHealthDto> {
+    return apiFetch<AdminSystemHealthDto>("/admin/system-health");
   },
 };

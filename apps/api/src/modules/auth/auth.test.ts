@@ -307,6 +307,16 @@ describe("Authentication, Sessions, CSRF, and RBAC", () => {
         listUsers: async () => ({ items: [], total: 0 }),
         listWorkspaces: async () => ({ items: [], total: 0 }),
         listAuditLogs: async () => ({ items: [], total: 0 }),
+        listSubscriptions: async () => ({ items: [], total: 0 }),
+        listPayments: async () => ({ items: [], total: 0 }),
+        getAnalytics: async () => ({
+          searchesByStatus: {},
+          consentsByStatus: {},
+          totalEnrolledImages: 0,
+        }),
+        listDeletionRequests: async () => ({ items: [], total: 0 }),
+        purgeDeletionRequest: async () => null,
+        checkDatabaseHealth: async () => true,
       },
     });
 

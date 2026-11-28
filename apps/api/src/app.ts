@@ -8,6 +8,7 @@ import { env } from "./config/env.js";
 import { getAuthContext, requireAuth, requireWorkspaceRole } from "./middleware/auth.js";
 import { csrfProtection } from "./middleware/csrf.js";
 import { errorHandler } from "./middleware/error-handler.js";
+import { apiRateLimiter } from "./middleware/rate-limit.js";
 import { requestIdMiddleware } from "./middleware/request-id.js";
 import { requestLoggerMiddleware } from "./middleware/request-logger.js";
 import { AdminController } from "./modules/admin/admin.controller.js";
@@ -106,6 +107,7 @@ export function createApp(options: CreateAppOptions = {}): Express {
   app.use(cookieParser());
   app.use(requestIdMiddleware);
   app.use(requestLoggerMiddleware);
+  app.use("/api/v1", apiRateLimiter);
   app.use(csrfProtection);
 
   const healthHandler = (_req: express.Request, res: express.Response): void => {
@@ -225,7 +227,7 @@ export function createApp(options: CreateAppOptions = {}): Express {
 
   // 9. Admin
   const adminRepo = options.adminRepository ?? new PrismaAdminRepository();
-  const adminController = new AdminController(new AdminService(adminRepo));
+  const adminController = new AdminController(new AdminService(adminRepo, storageAdapter));
   app.use("/api/v1/admin", createAdminRouter(adminController));
 
   app.use(errorHandler);

@@ -77,10 +77,10 @@ export function AppShell({
               <Button
                 variant="secondary"
                 size="icon"
-                aria-label={userName ? `Security settings for ${userName}` : "Account profile"}
+                aria-label={userName ? `Profile for ${userName}` : "Account profile"}
                 asChild
               >
-                <Link href="/settings/security">
+                <Link href="/profile">
                   <User className="h-4 w-4" aria-hidden="true" />
                 </Link>
               </Button>

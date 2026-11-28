@@ -1,9 +1,38 @@
-import type { ApiErrorResponse, ApiSuccessResponse, AuthMeDto, SessionDto } from "@app/types";
 import type {
+  ApiErrorResponse,
+  ApiSuccessResponse,
+  AuthMeDto,
+  BillingOverviewDto,
+  CollectionDto,
+  CollectionImageDto,
+  ConsentRecordDto,
+  PaginationMeta,
+  PaymentDto,
+  SearchDto,
+  SearchResultDto,
+  SessionDto,
+  SubscriptionDto,
+  UploadTicketDto,
+  UserDto,
+  WorkspaceDetailDto,
+  WorkspaceDto,
+  WorkspaceMemberDto,
+} from "@app/types";
+import type {
+  AddWorkspaceMemberInput,
+  CreateCollectionInput,
+  CreatePaymentCheckoutInput,
+  CreateSearchInput,
+  CreateUploadTicketInput,
+  CreateWorkspaceInput,
   ForgotPasswordInput,
   LoginInput,
   RegisterInput,
   ResetPasswordInput,
+  UpdateCollectionInput,
+  UpdateProfileInput,
+  UpdateSubscriptionInput,
+  UpdateWorkspaceInput,
   VerifyEmailInput,
 } from "@app/validation";
 
@@ -26,7 +55,10 @@ function readCsrfCookie(): string | null {
   return match ? decodeURIComponent(match.slice("facelens_csrf=".length)) : null;
 }
 
-export async function apiFetch<T>(path: string, init: RequestInit = {}): Promise<T> {
+async function requestEnvelope<T, M = { requestId: string }>(
+  path: string,
+  init: RequestInit = {},
+): Promise<ApiSuccessResponse<T, M & { requestId: string }>> {
   const method = (init.method ?? "GET").toUpperCase();
   const headers = new Headers(init.headers);
 
@@ -61,7 +93,11 @@ export async function apiFetch<T>(path: string, init: RequestInit = {}): Promise
     throw new ApiClientError(response.status, code, message);
   }
 
-  const body = (await response.json()) as ApiSuccessResponse<T>;
+  return (await response.json()) as ApiSuccessResponse<T, M & { requestId: string }>;
+}
+
+export async function apiFetch<T>(path: string, init: RequestInit = {}): Promise<T> {
+  const body = await requestEnvelope<T>(path, init);
   return body.data;
 }
 
@@ -111,5 +147,186 @@ export const authApi = {
     return apiFetch<{ revoked: boolean }>(`/auth/sessions/${sessionId}`, {
       method: "DELETE",
     });
+  },
+};
+
+export const usersApi = {
+  getMe(): Promise<UserDto> {
+    return apiFetch<UserDto>("/users/me");
+  },
+  updateMe(input: UpdateProfileInput): Promise<UserDto> {
+    return apiFetch<UserDto>("/users/me", {
+      method: "PATCH",
+      body: JSON.stringify(input),
+    });
+  },
+  deleteMe(): Promise<{ deleted: boolean }> {
+    return apiFetch<{ deleted: boolean }>("/users/me", {
+      method: "DELETE",
+    });
+  },
+};
+
+export const workspacesApi = {
+  list(): Promise<WorkspaceDto[]> {
+    return apiFetch<WorkspaceDto[]>("/workspaces");
+  },
+  create(input: CreateWorkspaceInput): Promise<WorkspaceDto> {
+    return apiFetch<WorkspaceDto>("/workspaces", {
+      method: "POST",
+      body: JSON.stringify(input),
+    });
+  },
+  getDetail(workspaceId: string): Promise<WorkspaceDetailDto> {
+    return apiFetch<WorkspaceDetailDto>(`/workspaces/${workspaceId}`);
+  },
+  update(workspaceId: string, input: UpdateWorkspaceInput): Promise<WorkspaceDetailDto> {
+    return apiFetch<WorkspaceDetailDto>(`/workspaces/${workspaceId}`, {
+      method: "PATCH",
+      body: JSON.stringify(input),
+    });
+  },
+  listMembers(workspaceId: string): Promise<WorkspaceMemberDto[]> {
+    return apiFetch<WorkspaceMemberDto[]>(`/workspaces/${workspaceId}/members`);
+  },
+  addMember(workspaceId: string, input: AddWorkspaceMemberInput): Promise<WorkspaceMemberDto> {
+    return apiFetch<WorkspaceMemberDto>(`/workspaces/${workspaceId}/members`, {
+      method: "POST",
+      body: JSON.stringify(input),
+    });
+  },
+  removeMember(workspaceId: string, memberId: string): Promise<{ removed: boolean }> {
+    return apiFetch<{ removed: boolean }>(`/workspaces/${workspaceId}/members/${memberId}`, {
+      method: "DELETE",
+    });
+  },
+};
+
+export const collectionsApi = {
+  list(workspaceId: string): Promise<CollectionDto[]> {
+    return apiFetch<CollectionDto[]>(`/workspaces/${workspaceId}/collections`);
+  },
+  create(workspaceId: string, input: CreateCollectionInput): Promise<CollectionDto> {
+    return apiFetch<CollectionDto>(`/workspaces/${workspaceId}/collections`, {
+      method: "POST",
+      body: JSON.stringify(input),
+    });
+  },
+  update(
+    workspaceId: string,
+    collectionId: string,
+    input: UpdateCollectionInput,
+  ): Promise<CollectionDto> {
+    return apiFetch<CollectionDto>(`/workspaces/${workspaceId}/collections/${collectionId}`, {
+      method: "PATCH",
+      body: JSON.stringify(input),
+    });
+  },
+  remove(workspaceId: string, collectionId: string): Promise<{ deleted: boolean }> {
+    return apiFetch<{ deleted: boolean }>(
+      `/workspaces/${workspaceId}/collections/${collectionId}`,
+      { method: "DELETE" },
+    );
+  },
+};
+
+export const uploadsApi = {
+  createTicket(workspaceId: string, input: CreateUploadTicketInput): Promise<UploadTicketDto> {
+    return apiFetch<UploadTicketDto>(`/workspaces/${workspaceId}/uploads/ticket`, {
+      method: "POST",
+      body: JSON.stringify(input),
+    });
+  },
+  listImages(workspaceId: string, collectionId: string): Promise<CollectionImageDto[]> {
+    return apiFetch<CollectionImageDto[]>(
+      `/workspaces/${workspaceId}/uploads/collections/${collectionId}/images`,
+    );
+  },
+  deleteImage(workspaceId: string, imageId: string): Promise<{ deleted: boolean }> {
+    return apiFetch<{ deleted: boolean }>(`/workspaces/${workspaceId}/uploads/images/${imageId}`, {
+      method: "DELETE",
+    });
+  },
+};
+
+export const consentApi = {
+  listByWorkspace(workspaceId: string): Promise<ConsentRecordDto[]> {
+    return apiFetch<ConsentRecordDto[]>(`/workspaces/${workspaceId}/consent`);
+  },
+  withdraw(workspaceId: string, imageId: string, reason: string): Promise<ConsentRecordDto> {
+    return apiFetch<ConsentRecordDto>(
+      `/workspaces/${workspaceId}/consent/images/${imageId}/withdraw`,
+      {
+        method: "POST",
+        body: JSON.stringify({ reason }),
+      },
+    );
+  },
+};
+
+export interface SearchWithResultsDto {
+  search: SearchDto;
+  results: SearchResultDto[];
+}
+
+export const searchesApi = {
+  async list(
+    workspaceId: string,
+    page = 1,
+    limit = 20,
+  ): Promise<{ items: SearchDto[]; meta: PaginationMeta }> {
+    const res = await requestEnvelope<SearchDto[], PaginationMeta>(
+      `/workspaces/${workspaceId}/searches?page=${page}&limit=${limit}`,
+    );
+    return { items: res.data, meta: res.meta };
+  },
+  create(workspaceId: string, input: CreateSearchInput): Promise<SearchDto> {
+    return apiFetch<SearchDto>(`/workspaces/${workspaceId}/searches`, {
+      method: "POST",
+      body: JSON.stringify(input),
+    });
+  },
+  getById(workspaceId: string, searchId: string): Promise<SearchWithResultsDto> {
+    return apiFetch<SearchWithResultsDto>(`/workspaces/${workspaceId}/searches/${searchId}`);
+  },
+  cancel(workspaceId: string, searchId: string): Promise<SearchDto> {
+    return apiFetch<SearchDto>(`/workspaces/${workspaceId}/searches/${searchId}/cancel`, {
+      method: "POST",
+    });
+  },
+  remove(workspaceId: string, searchId: string): Promise<{ deleted: boolean }> {
+    return apiFetch<{ deleted: boolean }>(`/workspaces/${workspaceId}/searches/${searchId}`, {
+      method: "DELETE",
+    });
+  },
+};
+
+export const billingApi = {
+  getOverview(workspaceId: string): Promise<BillingOverviewDto> {
+    return apiFetch<BillingOverviewDto>(`/workspaces/${workspaceId}/billing`);
+  },
+  updateSubscription(
+    workspaceId: string,
+    input: UpdateSubscriptionInput,
+  ): Promise<SubscriptionDto> {
+    return apiFetch<SubscriptionDto>(`/workspaces/${workspaceId}/billing/subscription`, {
+      method: "PUT",
+      body: JSON.stringify(input),
+    });
+  },
+  createCheckout(
+    workspaceId: string,
+    input: CreatePaymentCheckoutInput,
+  ): Promise<{ payment: PaymentDto; checkoutUrl: string }> {
+    return apiFetch<{ payment: PaymentDto; checkoutUrl: string }>(
+      `/workspaces/${workspaceId}/billing/checkout`,
+      {
+        method: "POST",
+        body: JSON.stringify(input),
+      },
+    );
+  },
+  listPayments(workspaceId: string): Promise<PaymentDto[]> {
+    return apiFetch<PaymentDto[]>(`/workspaces/${workspaceId}/billing/payments`);
   },
 };

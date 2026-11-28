@@ -11,6 +11,7 @@ import {
   Search,
   Settings,
   ShieldCheck,
+  UserCircle,
   X,
 } from "lucide-react";
 import { BrandLogo, cn } from "@app/ui";
@@ -28,6 +29,7 @@ const APP_NAV_ITEMS: NavItem[] = [
   { href: "/history", label: "Search History", icon: History },
   { href: "/billing", label: "Billing", icon: CreditCard },
   { href: "/settings", label: "Settings", icon: Settings },
+  { href: "/profile", label: "Profile", icon: UserCircle },
   { href: "/admin", label: "Admin", icon: ShieldCheck },
 ];
 

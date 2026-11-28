@@ -295,7 +295,20 @@ describe("Authentication, Sessions, CSRF, and RBAC", () => {
 
   it("enforces tenant workspace isolation and admin role access control", async () => {
     const repo = createInMemoryAuthRepository();
-    const app = createApp({ authRepository: repo });
+    const app = createApp({
+      authRepository: repo,
+      adminRepository: {
+        getOverview: async () => ({
+          totalUsers: 2,
+          totalWorkspaces: 2,
+          totalCollections: 0,
+          totalSearches: 0,
+        }),
+        listUsers: async () => ({ items: [], total: 0 }),
+        listWorkspaces: async () => ({ items: [], total: 0 }),
+        listAuditLogs: async () => ({ items: [], total: 0 }),
+      },
+    });
 
     const aliceReg = await request(app).post("/api/v1/auth/register").send({
       email: "alice2@example.com",

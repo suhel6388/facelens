@@ -88,13 +88,89 @@ export const withdrawConsentSchema = z.object({
   reason: z.string().trim().min(5, "Please provide a brief reason for withdrawal.").max(500),
 });
 
+export const uuidParamSchema = z.object({
+  id: z.string().uuid("Invalid resource ID format."),
+});
+
+export const updateProfileSchema = z.object({
+  name: z.string().trim().min(2, "Name must be at least 2 characters.").max(100),
+});
+
+export const updateWorkspaceSchema = z
+  .object({
+    name: z.string().trim().min(2).max(80).optional(),
+    retentionDays: z.coerce.number().int().min(1).max(365).optional(),
+  })
+  .refine((data) => data.name !== undefined || data.retentionDays !== undefined, {
+    message: "At least one field must be provided.",
+  });
+
+export const addWorkspaceMemberSchema = z.object({
+  email: z.string().trim().email("Please enter a valid email address."),
+  role: z.enum(["OWNER", "MEMBER", "VIEWER"]).default("MEMBER"),
+});
+
+export const updateWorkspaceMemberSchema = z.object({
+  role: z.enum(["OWNER", "MEMBER", "VIEWER"]),
+});
+
+export const updateCollectionSchema = z
+  .object({
+    name: z.string().trim().min(2).max(100).optional(),
+    description: z.string().trim().max(500).nullable().optional(),
+    purpose: z.string().trim().min(10).max(500).optional(),
+    status: z.enum(["ACTIVE", "ARCHIVED"]).optional(),
+  })
+  .refine(
+    (data) =>
+      data.name !== undefined ||
+      data.description !== undefined ||
+      data.purpose !== undefined ||
+      data.status !== undefined,
+    { message: "At least one field must be provided." },
+  );
+
+export const createUploadTicketSchema = enrollImageSchema.extend({
+  mimeType: z.enum(ALLOWED_IMAGE_MIME_TYPES),
+  sizeBytes: z.coerce.number().int().min(1).max(MAX_UPLOAD_SIZE_BYTES),
+  width: z.coerce.number().int().min(64).max(10000),
+  height: z.coerce.number().int().min(64).max(10000),
+  sha256: z
+    .string()
+    .trim()
+    .regex(/^[a-fA-F0-9]{64}$/, "Valid SHA-256 hex digest is required."),
+});
+
+export const updateSubscriptionSchema = z.object({
+  planCode: z.enum(["FREE", "STARTER", "PRO", "ENTERPRISE"]),
+});
+
+export const createPaymentCheckoutSchema = z.object({
+  planCode: z.enum(["STARTER", "PRO", "ENTERPRISE"]),
+  currency: z.string().trim().length(3).default("USD"),
+});
+
+export const adminAuditLogsQuerySchema = paginationSchema.extend({
+  workspaceId: z.string().uuid().optional(),
+  action: z.string().trim().max(100).optional(),
+});
+
 export type RegisterInput = z.infer<typeof registerSchema>;
 export type LoginInput = z.infer<typeof loginSchema>;
 export type VerifyEmailInput = z.infer<typeof verifyEmailSchema>;
 export type ForgotPasswordInput = z.infer<typeof forgotPasswordSchema>;
 export type ResetPasswordInput = z.infer<typeof resetPasswordSchema>;
 export type CreateWorkspaceInput = z.infer<typeof createWorkspaceSchema>;
+export type UpdateWorkspaceInput = z.infer<typeof updateWorkspaceSchema>;
+export type AddWorkspaceMemberInput = z.infer<typeof addWorkspaceMemberSchema>;
+export type UpdateWorkspaceMemberInput = z.infer<typeof updateWorkspaceMemberSchema>;
 export type CreateCollectionInput = z.infer<typeof createCollectionSchema>;
+export type UpdateCollectionInput = z.infer<typeof updateCollectionSchema>;
 export type EnrollImageInput = z.infer<typeof enrollImageSchema>;
+export type CreateUploadTicketInput = z.infer<typeof createUploadTicketSchema>;
 export type CreateSearchInput = z.infer<typeof createSearchSchema>;
 export type WithdrawConsentInput = z.infer<typeof withdrawConsentSchema>;
+export type UpdateProfileInput = z.infer<typeof updateProfileSchema>;
+export type UpdateSubscriptionInput = z.infer<typeof updateSubscriptionSchema>;
+export type CreatePaymentCheckoutInput = z.infer<typeof createPaymentCheckoutSchema>;
+export type AdminAuditLogsQuery = z.infer<typeof adminAuditLogsQuerySchema>;

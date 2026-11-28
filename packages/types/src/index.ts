@@ -137,3 +137,85 @@ export interface AuthMeDto {
   user: UserDto;
   workspaces: WorkspaceDto[];
 }
+
+export interface WorkspaceMemberDto {
+  id: string;
+  workspaceId: string;
+  userId: string;
+  email: string;
+  name: string;
+  role: WorkspaceRole;
+  createdAt: string;
+}
+
+export interface WorkspaceDetailDto {
+  id: string;
+  name: string;
+  slug: string;
+  retentionDays: number;
+  role: WorkspaceRole;
+  memberCount: number;
+  collectionCount: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface ConsentRecordDto {
+  id: string;
+  workspaceId: string;
+  collectionImageId: string;
+  authorizationBasis: string;
+  grantedByUserId: string;
+  status: ConsentStatus;
+  withdrawnAt: string | null;
+  withdrawalReason: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface UploadTicketDto {
+  imageId: string;
+  collectionId: string;
+  workspaceId: string;
+  storageKey: string;
+  uploadUrl: string;
+  expiresAt: string;
+  consentRecordId: string;
+}
+
+export type SubscriptionStatus = "ACTIVE" | "PAST_DUE" | "CANCELLED" | "TRIALING";
+export type PaymentStatus = "PENDING" | "SUCCEEDED" | "FAILED" | "REFUNDED";
+
+export interface SubscriptionDto {
+  id: string;
+  workspaceId: string;
+  planCode: string;
+  status: SubscriptionStatus;
+  monthlySearchLimit: number;
+  currentPeriodStart: string;
+  currentPeriodEnd: string;
+  createdAt: string;
+}
+
+export interface PaymentDto {
+  id: string;
+  workspaceId: string;
+  amountCents: number;
+  currency: string;
+  status: PaymentStatus;
+  externalRef: string | null;
+  createdAt: string;
+}
+
+export interface BillingOverviewDto {
+  subscription: SubscriptionDto | null;
+  monthlySearchesUsed: number;
+  recentPayments: PaymentDto[];
+}
+
+export interface AdminOverviewDto {
+  totalUsers: number;
+  totalWorkspaces: number;
+  totalCollections: number;
+  totalSearches: number;
+}

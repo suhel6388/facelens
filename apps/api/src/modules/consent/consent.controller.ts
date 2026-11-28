@@ -16,6 +16,18 @@ export class ConsentController {
     }
   };
 
+  listByCollection = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const records = await this.service.listByCollection(
+        req.params.workspaceId!,
+        req.params.collectionId!,
+      );
+      sendSuccess(res, 200, records);
+    } catch (err) {
+      next(err);
+    }
+  };
+
   listByImage = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
       const records = await this.service.listByImage(req.params.workspaceId!, req.params.imageId!);

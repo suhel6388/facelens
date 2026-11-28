@@ -10,6 +10,10 @@ export class ConsentService {
     return this.repo.listByWorkspace(workspaceId);
   }
 
+  async listByCollection(workspaceId: string, collectionId: string): Promise<ConsentRecordDto[]> {
+    return this.repo.listByCollection(workspaceId, collectionId);
+  }
+
   async listByImage(workspaceId: string, imageId: string): Promise<ConsentRecordDto[]> {
     return this.repo.listByImage(workspaceId, imageId);
   }

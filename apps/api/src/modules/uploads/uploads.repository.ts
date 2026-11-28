@@ -1,9 +1,21 @@
 import { prisma } from "@app/database";
 import type { CollectionImageDto, ConsentStatus, UploadTicketDto } from "@app/types";
 
+export interface StoredImageRecord {
+  id: string;
+  workspaceId: string;
+  collectionId: string;
+  storageKey: string;
+  mimeType: string;
+  sizeBytes: number;
+  width: number;
+  height: number;
+}
+
 export interface UploadsRepository {
   collectionExists(workspaceId: string, collectionId: string): Promise<boolean>;
   createEnrollment(params: {
+    imageId: string;
     workspaceId: string;
     collectionId: string;
     actorId: string;
@@ -17,8 +29,14 @@ export interface UploadsRepository {
     uploadUrl: string;
     expiresAt: Date;
   }): Promise<UploadTicketDto>;
+  findImageById(workspaceId: string, imageId: string): Promise<StoredImageRecord | null>;
+  updateImageMetadata(
+    workspaceId: string,
+    imageId: string,
+    data: { sizeBytes: number; width: number; height: number; sha256: string },
+  ): Promise<void>;
   listCollectionImages(workspaceId: string, collectionId: string): Promise<CollectionImageDto[]>;
-  softDeleteImage(workspaceId: string, imageId: string, actorId: string): Promise<boolean>;
+  softDeleteImage(workspaceId: string, imageId: string, actorId: string): Promise<string | null>;
 }
 
 function toImageDto(row: {
@@ -42,6 +60,7 @@ function toImageDto(row: {
     sizeBytes: row.sizeBytes,
     consentStatus: row.consentStatus,
     enrolledAt: row.createdAt.toISOString(),
+    previewUrl: `/api/v1/workspaces/${row.workspaceId}/uploads/images/${row.id}/content`,
   };
 }
 
@@ -55,6 +74,7 @@ export class PrismaUploadsRepository implements UploadsRepository {
   }
 
   async createEnrollment(params: {
+    imageId: string;
     workspaceId: string;
     collectionId: string;
     actorId: string;
@@ -71,6 +91,7 @@ export class PrismaUploadsRepository implements UploadsRepository {
     const result = await prisma.$transaction(async (tx) => {
       const image = await tx.collectionImage.create({
         data: {
+          id: params.imageId,
           workspaceId: params.workspaceId,
           collectionId: params.collectionId,
           storageKey: params.storageKey,
@@ -119,6 +140,34 @@ export class PrismaUploadsRepository implements UploadsRepository {
     };
   }
 
+  async findImageById(workspaceId: string, imageId: string): Promise<StoredImageRecord | null> {
+    const row = await prisma.collectionImage.findFirst({
+      where: { id: imageId, workspaceId, deletedAt: null },
+      select: {
+        id: true,
+        workspaceId: true,
+        collectionId: true,
+        storageKey: true,
+        mimeType: true,
+        sizeBytes: true,
+        width: true,
+        height: true,
+      },
+    });
+    return row;
+  }
+
+  async updateImageMetadata(
+    workspaceId: string,
+    imageId: string,
+    data: { sizeBytes: number; width: number; height: number; sha256: string },
+  ): Promise<void> {
+    await prisma.collectionImage.updateMany({
+      where: { id: imageId, workspaceId, deletedAt: null },
+      data,
+    });
+  }
+
   async listCollectionImages(
     workspaceId: string,
     collectionId: string,
@@ -130,11 +179,15 @@ export class PrismaUploadsRepository implements UploadsRepository {
     return rows.map(toImageDto);
   }
 
-  async softDeleteImage(workspaceId: string, imageId: string, actorId: string): Promise<boolean> {
+  async softDeleteImage(
+    workspaceId: string,
+    imageId: string,
+    actorId: string,
+  ): Promise<string | null> {
     const existing = await prisma.collectionImage.findFirst({
       where: { id: imageId, workspaceId, deletedAt: null },
     });
-    if (!existing) return false;
+    if (!existing) return null;
 
     const now = new Date();
     await prisma.$transaction(async (tx) => {
@@ -152,6 +205,6 @@ export class PrismaUploadsRepository implements UploadsRepository {
         },
       });
     });
-    return true;
+    return existing.storageKey;
   }
 }

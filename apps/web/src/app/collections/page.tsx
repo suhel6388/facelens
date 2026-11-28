@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import Link from "next/link";
 import { toast } from "sonner";
 import type { CollectionDto, CollectionImageDto } from "@app/types";
 import {
@@ -229,6 +230,9 @@ export default function CollectionsPage() {
                         </p>
                       </div>
                       <div className="flex shrink-0 gap-2">
+                        <Button variant="primary" size="sm" asChild>
+                          <Link href={`/collections/${col.id}`}>Manage &amp; Upload</Link>
+                        </Button>
                         <Button
                           variant="secondary"
                           size="sm"

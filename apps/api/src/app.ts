@@ -65,6 +65,7 @@ import {
 import { createWorkspacesRouter } from "./modules/workspaces/workspaces.routes.js";
 import { WorkspacesService } from "./modules/workspaces/workspaces.service.js";
 import { openApiSpec } from "./openapi.js";
+import { LocalPrivateStorageAdapter, type PrivateStorageAdapter } from "./lib/storage.js";
 
 export interface CreateAppOptions {
   authRepository?: AuthRepository;
@@ -74,6 +75,7 @@ export interface CreateAppOptions {
   collectionsRepository?: CollectionsRepository;
   consentRepository?: ConsentRepository;
   uploadsRepository?: UploadsRepository;
+  storageAdapter?: PrivateStorageAdapter;
   searchesRepository?: SearchesRepository;
   billingRepository?: BillingRepository;
   adminRepository?: AdminRepository;
@@ -183,7 +185,8 @@ export function createApp(options: CreateAppOptions = {}): Express {
 
   // 6. Uploads
   const uploadsRepo = options.uploadsRepository ?? new PrismaUploadsRepository();
-  const uploadsController = new UploadsController(new UploadsService(uploadsRepo));
+  const storageAdapter = options.storageAdapter ?? new LocalPrivateStorageAdapter();
+  const uploadsController = new UploadsController(new UploadsService(uploadsRepo, storageAdapter));
   app.use(
     "/api/v1/workspaces/:workspaceId/uploads",
     createUploadsRouter(uploadsController, resolveWorkspaceRole),

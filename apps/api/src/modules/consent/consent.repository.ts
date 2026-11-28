@@ -3,6 +3,7 @@ import type { ConsentRecordDto, ConsentStatus } from "@app/types";
 
 export interface ConsentRepository {
   listByWorkspace(workspaceId: string): Promise<ConsentRecordDto[]>;
+  listByCollection(workspaceId: string, collectionId: string): Promise<ConsentRecordDto[]>;
   listByImage(workspaceId: string, imageId: string): Promise<ConsentRecordDto[]>;
   withdrawConsent(params: {
     workspaceId: string;
@@ -42,6 +43,17 @@ export class PrismaConsentRepository implements ConsentRepository {
   async listByWorkspace(workspaceId: string): Promise<ConsentRecordDto[]> {
     const rows = await prisma.consentRecord.findMany({
       where: { workspaceId },
+      orderBy: { createdAt: "desc" },
+    });
+    return rows.map(toConsentDto);
+  }
+
+  async listByCollection(workspaceId: string, collectionId: string): Promise<ConsentRecordDto[]> {
+    const rows = await prisma.consentRecord.findMany({
+      where: {
+        workspaceId,
+        collectionImage: { collectionId, deletedAt: null },
+      },
       orderBy: { createdAt: "desc" },
     });
     return rows.map(toConsentDto);

@@ -206,6 +206,9 @@ export const collectionsApi = {
   list(workspaceId: string): Promise<CollectionDto[]> {
     return apiFetch<CollectionDto[]>(`/workspaces/${workspaceId}/collections`);
   },
+  getById(workspaceId: string, collectionId: string): Promise<CollectionDto> {
+    return apiFetch<CollectionDto>(`/workspaces/${workspaceId}/collections/${collectionId}`);
+  },
   create(workspaceId: string, input: CreateCollectionInput): Promise<CollectionDto> {
     return apiFetch<CollectionDto>(`/workspaces/${workspaceId}/collections`, {
       method: "POST",
@@ -237,6 +240,63 @@ export const uploadsApi = {
       body: JSON.stringify(input),
     });
   },
+  uploadDirect(
+    uploadUrl: string,
+    file: File,
+    onProgress?: (percent: number) => void,
+  ): Promise<{
+    imageId: string;
+    mimeType: string;
+    width: number;
+    height: number;
+    sizeBytes: number;
+    metadataStripped: boolean;
+  }> {
+    return new Promise((resolve, reject) => {
+      const xhr = new XMLHttpRequest();
+      const targetUrl = uploadUrl.startsWith("http")
+        ? uploadUrl
+        : `${API_BASE_URL.replace(/\/api\/v1$/, "")}${uploadUrl}`;
+      xhr.open("PUT", targetUrl, true);
+      xhr.withCredentials = true;
+      xhr.setRequestHeader("Content-Type", file.type);
+      const csrf = readCsrfCookie();
+      if (csrf) {
+        xhr.setRequestHeader("x-csrf-token", csrf);
+      }
+
+      xhr.upload.onprogress = (evt) => {
+        if (evt.lengthComputable && onProgress) {
+          onProgress(Math.round((evt.loaded / evt.total) * 100));
+        }
+      };
+
+      xhr.onload = () => {
+        try {
+          const parsed = JSON.parse(xhr.responseText);
+          if (xhr.status >= 200 && xhr.status < 300) {
+            resolve(parsed.data);
+          } else {
+            reject(
+              new ApiClientError(
+                xhr.status,
+                parsed?.error?.code ?? "UPLOAD_FAILED",
+                parsed?.error?.message ?? "Image upload failed.",
+              ),
+            );
+          }
+        } catch {
+          reject(new ApiClientError(xhr.status, "UPLOAD_FAILED", "Image upload failed."));
+        }
+      };
+
+      xhr.onerror = () => {
+        reject(new ApiClientError(0, "NETWORK_ERROR", "Network error during upload."));
+      };
+
+      xhr.send(file);
+    });
+  },
   listImages(workspaceId: string, collectionId: string): Promise<CollectionImageDto[]> {
     return apiFetch<CollectionImageDto[]>(
       `/workspaces/${workspaceId}/uploads/collections/${collectionId}/images`,
@@ -252,6 +312,11 @@ export const uploadsApi = {
 export const consentApi = {
   listByWorkspace(workspaceId: string): Promise<ConsentRecordDto[]> {
     return apiFetch<ConsentRecordDto[]>(`/workspaces/${workspaceId}/consent`);
+  },
+  listByCollection(workspaceId: string, collectionId: string): Promise<ConsentRecordDto[]> {
+    return apiFetch<ConsentRecordDto[]>(
+      `/workspaces/${workspaceId}/consent/collections/${collectionId}`,
+    );
   },
   withdraw(workspaceId: string, imageId: string, reason: string): Promise<ConsentRecordDto> {
     return apiFetch<ConsentRecordDto>(

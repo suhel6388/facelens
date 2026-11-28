@@ -1,4 +1,4 @@
-import { Router } from "express";
+import express, { Router } from "express";
 import { z } from "zod";
 import { createUploadTicketSchema } from "@app/validation";
 import {
@@ -32,6 +32,22 @@ export function createUploadsRouter(
     validate({ params: workspaceParams, body: createUploadTicketSchema }),
     requireWorkspaceRole(["OWNER", "MEMBER"], resolveMembership),
     controller.createTicket,
+  );
+  router.put(
+    "/direct/:imageId",
+    validate({ params: imageParams }),
+    requireWorkspaceRole(["OWNER", "MEMBER"], resolveMembership),
+    express.raw({
+      type: ["image/jpeg", "image/png", "image/webp", "application/octet-stream"],
+      limit: "11mb",
+    }),
+    controller.uploadDirect,
+  );
+  router.get(
+    "/images/:imageId/content",
+    validate({ params: imageParams }),
+    requireWorkspaceRole(["OWNER", "MEMBER", "VIEWER"], resolveMembership),
+    controller.getImageContent,
   );
   router.get(
     "/collections/:collectionId/images",

@@ -84,7 +84,8 @@ function createInMemoryPlatform() {
   const sessions = new Map<string, SessionRecord>();
   const authTokens = new Map<string, AuthTokenRecord>();
   const collections = new Map<string, CollectionDto>();
-  const images = new Map<string, CollectionImageDto & { deleted: boolean }>();
+  const images = new Map<string, CollectionImageDto & { deleted: boolean; storageKey: string }>();
+  const objectStore = new Map<string, Buffer>();
   const consents = new Map<string, ConsentRecordDto>();
   const searches = new Map<string, SearchDto & { deleted: boolean }>();
   const subscriptions = new Map<string, SubscriptionDto>();
@@ -475,7 +476,7 @@ function createInMemoryPlatform() {
     },
     async createEnrollment(params): Promise<UploadTicketDto> {
       const now = new Date().toISOString();
-      const imageId = randomUUID();
+      const imageId = params.imageId;
       const consentId = randomUUID();
       images.set(imageId, {
         id: imageId,
@@ -487,6 +488,7 @@ function createInMemoryPlatform() {
         sizeBytes: params.sizeBytes,
         consentStatus: "GRANTED",
         enrolledAt: now,
+        storageKey: params.storageKey,
         deleted: false,
       });
       consents.set(consentId, {
@@ -511,6 +513,28 @@ function createInMemoryPlatform() {
         consentRecordId: consentId,
       };
     },
+    async findImageById(workspaceId, imageId) {
+      const img = images.get(imageId);
+      if (!img || img.workspaceId !== workspaceId || img.deleted) return null;
+      return {
+        id: img.id,
+        workspaceId: img.workspaceId,
+        collectionId: img.collectionId,
+        storageKey: img.storageKey,
+        mimeType: img.mimeType,
+        sizeBytes: img.sizeBytes,
+        width: img.width,
+        height: img.height,
+      };
+    },
+    async updateImageMetadata(workspaceId, imageId, data) {
+      const img = images.get(imageId);
+      if (img && img.workspaceId === workspaceId && !img.deleted) {
+        img.sizeBytes = data.sizeBytes;
+        img.width = data.width;
+        img.height = data.height;
+      }
+    },
     async listCollectionImages(workspaceId, collectionId) {
       return Array.from(images.values()).filter(
         (i) => i.workspaceId === workspaceId && i.collectionId === collectionId && !i.deleted,
@@ -518,15 +542,27 @@ function createInMemoryPlatform() {
     },
     async softDeleteImage(workspaceId, imageId) {
       const img = images.get(imageId);
-      if (!img || img.workspaceId !== workspaceId || img.deleted) return false;
+      if (!img || img.workspaceId !== workspaceId || img.deleted) return null;
       img.deleted = true;
-      return true;
+      return img.storageKey;
     },
   };
 
   const consentRepository: ConsentRepository = {
     async listByWorkspace(workspaceId) {
       return Array.from(consents.values()).filter((c) => c.workspaceId === workspaceId);
+    },
+    async listByCollection(workspaceId, collectionId) {
+      const colImageIds = new Set(
+        Array.from(images.values())
+          .filter(
+            (i) => i.workspaceId === workspaceId && i.collectionId === collectionId && !i.deleted,
+          )
+          .map((i) => i.id),
+      );
+      return Array.from(consents.values()).filter(
+        (c) => c.workspaceId === workspaceId && colImageIds.has(c.collectionImageId),
+      );
     },
     async listByImage(workspaceId, imageId) {
       return Array.from(consents.values()).filter(
@@ -728,6 +764,23 @@ function createInMemoryPlatform() {
       collectionsRepository,
       consentRepository,
       uploadsRepository,
+      storageAdapter: {
+        createSignedUploadUrl({ workspaceId, imageId, expiresAt }) {
+          return `/api/v1/workspaces/${workspaceId}/uploads/direct/${imageId}?expires=${expiresAt.getTime()}&sig=valid-test-sig`;
+        },
+        verifyUploadSignature({ expires, signature }) {
+          return signature === "valid-test-sig" && Date.now() <= expires;
+        },
+        async putObject(storageKey, data) {
+          objectStore.set(storageKey, data);
+        },
+        async getObject(storageKey) {
+          return objectStore.get(storageKey) ?? null;
+        },
+        async deleteObject(storageKey) {
+          objectStore.delete(storageKey);
+        },
+      },
       searchesRepository,
       billingRepository,
       adminRepository,

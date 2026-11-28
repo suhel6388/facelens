@@ -10,6 +10,10 @@ import { validate } from "../../middleware/validate.js";
 import type { ConsentController } from "./consent.controller.js";
 
 const workspaceParams = z.object({ workspaceId: z.string().uuid() });
+const collectionParams = z.object({
+  workspaceId: z.string().uuid(),
+  collectionId: z.string().uuid(),
+});
 const imageParams = z.object({ workspaceId: z.string().uuid(), imageId: z.string().uuid() });
 
 export function createConsentRouter(
@@ -25,6 +29,12 @@ export function createConsentRouter(
     validate({ params: workspaceParams }),
     requireWorkspaceRole(["OWNER", "MEMBER", "VIEWER"], resolveMembership),
     controller.listByWorkspace,
+  );
+  router.get(
+    "/collections/:collectionId",
+    validate({ params: collectionParams }),
+    requireWorkspaceRole(["OWNER", "MEMBER", "VIEWER"], resolveMembership),
+    controller.listByCollection,
   );
   router.get(
     "/images/:imageId",
